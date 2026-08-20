@@ -164,13 +164,6 @@ class BookAuthor(Base):
         nullable=False,
     )
 
-    __table_args__ = (
-        UniqueConstraint(
-            "book_id",
-            "author_id",
-            name="uq_book_author",
-        ),
-    )
 
 # LOAN
 class Loan(Base):
@@ -222,11 +215,6 @@ class Loan(Base):
     book: Mapped["Book"] = relationship(
         "Book",
         back_populates="loans",
-    )
-
-    __table_args__ = (
-        Index("ix_loans_member_book", "member_id", "book_id"),
-        Index("ix_loans_due_date", "due_date"),
     )
 
 # COURSE
