@@ -15,7 +15,7 @@ async def create_course(
         description = course.description
     )
 
-    await session.add(course)
+    session.add(course)
     await session.commit()
     return course
 

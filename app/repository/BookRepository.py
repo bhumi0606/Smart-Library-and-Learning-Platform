@@ -18,7 +18,7 @@ async def create_book(
         status = book.status
     )
 
-    await session.add(book)
+    session.add(book)
     await session.commit()
     return book
 

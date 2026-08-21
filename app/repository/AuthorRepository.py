@@ -12,7 +12,7 @@ async def create_author(
         name = author.name
     )
 
-    await session.add(author)
+    session.add(author)
     await session.commit()
     return author
 

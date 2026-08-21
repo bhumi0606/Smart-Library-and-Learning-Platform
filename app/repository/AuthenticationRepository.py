@@ -10,10 +10,11 @@ async def register_member(
     member = Member(
         name = member.name,
         email = member.email,
-        password = member.password
+        password = member.password,
+        role = member.role
     )
 
-    await session.add(member)
+    session.add(member)
     await session.commit()
     return member
 

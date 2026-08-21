@@ -19,7 +19,7 @@ async def create_loan(
         return_date = loan.return_date
     )
 
-    await session.add(loan)
+    session.add(loan)
     await session.commit()
     return loan
 

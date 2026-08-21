@@ -16,7 +16,7 @@ async def create_enrollment(
         course_id = enrollment.course_id
     )
 
-    await session.add(enrollment)
+    session.add(enrollment)
     await session.commit()
     return enrollment
 
