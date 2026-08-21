@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from app.db.models import BookStatus, BookType
+from app.enums.BookEnums import BookStatus, BookType
 from datetime import date
 
 class CreateBook(BaseModel):
