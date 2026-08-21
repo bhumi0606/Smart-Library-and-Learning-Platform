@@ -8,6 +8,8 @@ from sqlalchemy import DateTime, String, func
 from app.db.database import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.enums.RoleEnums import Role
+
 class Member(Base):
     __tablename__ = "members"
 
@@ -37,6 +39,11 @@ class Member(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
+    )
+
+    role: Mapped[Role] = mapped_column(
+        default=Role.MEMBER,
+        nullable=False
     )
 
     loans: Mapped[list["Loan"]] = relationship(
