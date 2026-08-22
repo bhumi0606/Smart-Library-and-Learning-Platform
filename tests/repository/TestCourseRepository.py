@@ -14,6 +14,7 @@ async def test_create_course():
     result_mock.scalar_one_or_none.return_value = fake_course
 
     session.execute = AsyncMock(return_value=fake_course)
+    session.add = MagicMock()
     session.commit = AsyncMock()
 
     result = await create_course(

@@ -17,6 +17,7 @@ async def create_course(
 
     session.add(course)
     await session.commit()
+    await session.refresh(course)
     return course
 
 async def get_course_by_id(
@@ -55,6 +56,7 @@ async def update_course(
         if update_course.description:
             course.description = update_course.description
     await session.commit()
+    await session.refresh(course)
     return course
 
 async def delete_course(

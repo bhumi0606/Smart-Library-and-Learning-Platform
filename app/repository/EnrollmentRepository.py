@@ -18,6 +18,7 @@ async def create_enrollment(
 
     session.add(enrollment)
     await session.commit()
+    await session.refresh(enrollment)
     return enrollment
 
 async def get_enrollment_by_id(
@@ -58,6 +59,7 @@ async def update_enrollment(
             enrollment.course_id = update_enrollment.course_id
 
     await session.commit()
+    await session.refresh(enrollment)
     return enrollment
 
 async def delete_enrollment(

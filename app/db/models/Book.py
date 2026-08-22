@@ -3,7 +3,7 @@
 # BOOK
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, String, func
+from sqlalchemy import Date, DateTime, Enum, String, func
 
 from app.enums.BookEnums import BookStatus, BookType
 from app.db.database import Base
@@ -37,10 +37,24 @@ class Book(Base):
     )
 
     book_type: Mapped[BookType] = mapped_column(
+        Enum(
+            BookType,
+            name="book_type",
+            values_callable=lambda enum_class: [
+                member.value for member in enum_class
+            ],
+        ),
         nullable=False,
     )
 
     status: Mapped[BookStatus] = mapped_column(
+        Enum(
+            BookStatus,
+            name="book_status",
+            values_callable=lambda enum_class: [
+                member.value for member in enum_class
+            ],
+        ),
         default=BookStatus.AVAILABLE,
         nullable=False,
         index=True,

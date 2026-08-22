@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
-from app.db.models import BookStatus, BookType
+from app.db.models.Book import BookStatus, BookType
 from datetime import datetime, date
 
 class BookResponse(BaseModel):

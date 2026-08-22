@@ -3,7 +3,7 @@
 # MEMBER
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import DateTime, String, func, Enum
 
 from app.db.database import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -42,6 +42,13 @@ class Member(Base):
     )
 
     role: Mapped[Role] = mapped_column(
+        Enum(
+            Role,
+            name="role",
+            values_callable=lambda enum_class: [
+                member.value for member in enum_class
+            ],
+        ),
         default=Role.MEMBER,
         nullable=False
     )

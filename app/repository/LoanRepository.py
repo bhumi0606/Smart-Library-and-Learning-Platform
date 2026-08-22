@@ -21,6 +21,7 @@ async def create_loan(
 
     session.add(loan)
     await session.commit()
+    await session.refresh(loan)
     return loan
 
 async def get_loan_by_id(
@@ -60,6 +61,7 @@ async def update_loan(
             loan.return_date = update_loan.return_date
 
     await session.commit()
+    await session.refresh(loan)
     return loan
 
 async def delete_loan(

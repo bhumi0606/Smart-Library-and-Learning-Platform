@@ -10,7 +10,7 @@ def create_access_token(data:TokenData, refresh_token=False):
     payload = {
         'email': data.email,
         'role': data.role,
-        'type': 'access',
+        'type': "refresh" if refresh_token else "access",
         'exp': datetime.utcnow()+timedelta(minutes=REFRESH_TOKEN_TIME if refresh_token else ACCESS_TOKEN_TIME)
     }
     token = jwt.encode(
@@ -43,10 +43,17 @@ def decode_token(token):
 
 def create_refresh_token(token):
     payload = decode_token(token)
-    if payload:
-        data = TokenData(
-            email = payload.get('email'),
-            role = payload.get('role')
+    if payload.get("type") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Only an access token can be refreshed",
         )
-        token = create_access_token(data,refresh_token=True)
-        return token
+    data = TokenData(
+        email=payload.get("email"),
+        role=payload.get("role"),
+    )
+
+    return create_access_token(
+        data,
+        refresh_token=True,
+    )

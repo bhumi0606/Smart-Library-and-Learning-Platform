@@ -35,6 +35,7 @@ async def update_member(
             old_member.email = update_member.email
 
     await session.commit()
+    await session.refresh(old_member)
     return old_member
 
 async def delete_member(
