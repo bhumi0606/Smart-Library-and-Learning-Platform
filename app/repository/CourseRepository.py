@@ -11,7 +11,7 @@ async def create_course(
         session: AsyncSession
 ):
     course = Course(
-        title = course.title,
+        name = course.name,
         description = course.description
     )
 

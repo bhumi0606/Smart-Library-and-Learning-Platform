@@ -8,21 +8,35 @@ from app.services.EnrollmentService import create_enrollment_service, get_enroll
 
 
 @pytest.mark.asyncio
+@patch("app.services.EnrollmentService.get_member_by_id")
+@patch("app.services.EnrollmentService.get_course_by_id")
+@patch("app.services.EnrollmentService.get_enrollment_by_member_and_course")
 @patch("app.services.EnrollmentService.create_enrollment")
-async def test_create_enrollment_service(mock_create_enrollment):
+async def test_create_enrollment_service(
+    mock_create_enrollment,
+    mock_get_enrollment_by_member_and_course,
+    mock_get_course_by_id,
+    mock_get_member_by_id,
+):
     session = MagicMock()
 
-    enrollment = CreateEnrollment(
-        member_id=1,
-        course_id=1
-    )
+    mock_get_member_by_id.return_value = MagicMock()
+
+    mock_get_course_by_id.return_value = MagicMock()
+
+    mock_get_enrollment_by_member_and_course.return_value = None
 
     fake_enrollment = MagicMock()
     fake_enrollment.id = 1
-    fake_enrollment.member_id = 1
+    fake_enrollment.member_id = 2
     fake_enrollment.course_id = 1
 
     mock_create_enrollment.return_value = fake_enrollment
+
+    enrollment = CreateEnrollment(
+        member_id=2,
+        course_id=1
+    )
 
     result = await create_enrollment_service(
         enrollment=enrollment,
@@ -30,6 +44,7 @@ async def test_create_enrollment_service(mock_create_enrollment):
     )
 
     assert result == fake_enrollment
+
 
 
 @pytest.mark.asyncio

@@ -13,7 +13,7 @@ from app.services.BookService import create_book_service, get_books_service, get
 book_router = APIRouter(
     dependencies=[Depends(get_current_user)],
     prefix="/books",
-    tags=["Books"],
+    tags=["Books"],     
 )
 
 

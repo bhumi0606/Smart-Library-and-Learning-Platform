@@ -9,12 +9,6 @@ class CreateLoan(BaseModel):
     book_id: int = Field(
         description="The ID of the book being borrowed"
     )
-    issued_at: datetime = Field(
-        description="Timestamp when the loan was issued"
-    )
     due_date: datetime = Field(
         description="Timestamp when the loan is due"
-    )
-    return_date: Optional[datetime] = Field(
-        description="Timestamp when the loan was returned"
     )

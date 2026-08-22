@@ -1,15 +1,11 @@
 from unittest.mock import AsyncMock, patch
 
-from fastapi.testclient import TestClient
-
-from app.main import app
-
-
-client = TestClient(app)
-
 
 @patch("app.api.authors.create_author_service")
-def test_create_author(mock_create_author):
+def test_create_author(
+    mock_create_author,
+    librarian_client,
+):
 
     fake_author = {
         "id": 1,
@@ -18,11 +14,11 @@ def test_create_author(mock_create_author):
 
     mock_create_author.return_value = fake_author
 
-    response = client.post(
+    response = librarian_client.post(
         "/api/authors",
         json={
-            "name": "Test Author"
-        }
+            "name": "Test Author",
+        },
     )
 
     assert response.status_code == 201
@@ -30,7 +26,10 @@ def test_create_author(mock_create_author):
 
 
 @patch("app.api.authors.get_authors_service")
-def test_get_authors(mock_get_authors):
+def test_get_authors(
+    mock_get_authors,
+    member_client,
+):
 
     fake_authors = [
         {
@@ -45,14 +44,17 @@ def test_get_authors(mock_get_authors):
 
     mock_get_authors.return_value = fake_authors
 
-    response = client.get("/api/authors")
+    response = member_client.get("/api/authors")
 
     assert response.status_code == 200
     assert response.json() == fake_authors
 
 
 @patch("app.api.authors.get_author_by_id_service")
-def test_get_author(mock_get_author):
+def test_get_author(
+    mock_get_author,
+    member_client,
+):
 
     fake_author = {
         "id": 1,
@@ -61,14 +63,17 @@ def test_get_author(mock_get_author):
 
     mock_get_author.return_value = fake_author
 
-    response = client.get("/api/authors/1")
+    response = member_client.get("/api/authors/1")
 
     assert response.status_code == 200
     assert response.json() == fake_author
 
 
 @patch("app.api.authors.update_author_service")
-def test_update_author(mock_update_author):
+def test_update_author(
+    mock_update_author,
+    librarian_client,
+):
 
     fake_author = {
         "id": 1,
@@ -77,21 +82,25 @@ def test_update_author(mock_update_author):
 
     mock_update_author.return_value = fake_author
 
-    response = client.patch(
+    response = librarian_client.patch(
         "/api/authors/1",
         json={
-            "name": "Updated Author"
-        }
+            "name": "Updated Author",
+        },
     )
 
     assert response.status_code == 200
     assert response.json() == fake_author
 
+
 @patch("app.api.authors.delete_author_service")
-def test_delete_author(mock_delete_author):
+def test_delete_author(
+    mock_delete_author,
+    librarian_client,
+):
 
     mock_delete_author.return_value = None
 
-    response = client.delete("/api/authors/1")
+    response = librarian_client.delete("/api/authors/1")
 
     assert response.status_code == 204

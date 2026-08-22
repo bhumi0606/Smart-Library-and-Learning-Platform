@@ -11,7 +11,7 @@ def create_access_token(data:TokenData, refresh_token=False):
         'email': data.email,
         'role': data.role,
         'type': "refresh" if refresh_token else "access",
-        'exp': datetime.utcnow()+timedelta(minutes=REFRESH_TOKEN_TIME if refresh_token else ACCESS_TOKEN_TIME)
+        'exp': datetime.utcnow()+timedelta(days=REFRESH_TOKEN_TIME if refresh_token else ACCESS_TOKEN_TIME)
     }
     token = jwt.encode(
         payload,

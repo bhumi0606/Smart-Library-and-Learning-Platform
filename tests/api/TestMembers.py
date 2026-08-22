@@ -1,15 +1,11 @@
 from unittest.mock import AsyncMock, patch
 
-from fastapi.testclient import TestClient
-
-from app.main import app
-
-
-client = TestClient(app)
-
 
 @patch("app.api.members.get_members_service")
-def test_get_members(mock_get_members):
+def test_get_members(
+    mock_get_members,
+    librarian_client,
+):
 
     fake_members = [
         {
@@ -28,14 +24,17 @@ def test_get_members(mock_get_members):
 
     mock_get_members.return_value = fake_members
 
-    response = client.get("/api/members")
+    response = librarian_client.get("/api/members")
 
     assert response.status_code == 200
     assert response.json() == fake_members
 
 
 @patch("app.api.members.get_member_by_id_service")
-def test_get_member(mock_get_member):
+def test_get_member(
+    mock_get_member,
+    member_client,
+):
 
     fake_member = {
         "id": 1,
@@ -43,17 +42,20 @@ def test_get_member(mock_get_member):
         "email": "test@gmail.com",
         "role": "member",
     }
-    
+
     mock_get_member.return_value = fake_member
 
-    response = client.get("/api/members/1")
+    response = member_client.get("/api/members/1")
 
     assert response.status_code == 200
     assert response.json() == fake_member
 
 
 @patch("app.api.members.update_member_service")
-def test_update_member(mock_update_member):
+def test_update_member(
+    mock_update_member,
+    member_client,
+):
 
     fake_member = {
         "id": 1,
@@ -64,11 +66,11 @@ def test_update_member(mock_update_member):
 
     mock_update_member.return_value = fake_member
 
-    response = client.patch(
+    response = member_client.patch(
         "/api/members/1",
         json={
             "name": "Updated Member"
-        }
+        },
     )
 
     assert response.status_code == 200
@@ -76,10 +78,13 @@ def test_update_member(mock_update_member):
 
 
 @patch("app.api.members.delete_member_service")
-def test_delete_member(mock_delete_member):
+def test_delete_member(
+    mock_delete_member,
+    librarian_client,
+):
 
     mock_delete_member.return_value = None
 
-    response = client.delete("/api/members/1")
+    response = librarian_client.delete("/api/members/1")
 
     assert response.status_code == 204
