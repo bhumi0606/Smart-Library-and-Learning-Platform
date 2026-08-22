@@ -18,6 +18,7 @@ async def test_register_member():
     result_mock.scalar_one_or_none.return_value = fake_member
         
     session.execute = AsyncMock(return_value=result_mock)
+    session.add = MagicMock()
     session.commit = AsyncMock()
 
     result = await register_member(

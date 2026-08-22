@@ -14,6 +14,7 @@ async def create_author(
 
     session.add(author)
     await session.commit()
+    await session.refresh(author)
     return author
 
 async def get_author_by_id(
@@ -50,6 +51,7 @@ async def update_author(
             author.name = update_author.name
 
     await session.commit()
+    await session.refresh(author)
     return author
 
 async def delete_author(
@@ -65,6 +67,4 @@ async def delete_author(
 
     await session.delete(author)
     await session.commit()
-
     return author
-    

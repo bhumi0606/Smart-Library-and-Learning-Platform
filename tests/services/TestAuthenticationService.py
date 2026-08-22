@@ -9,7 +9,8 @@ from app.services.AuthenticationService import login_member_service, register_me
 
 @pytest.mark.asyncio
 async def test_register_member_service():
-    session = MagicMock()
+    session = AsyncMock()
+    session.add = MagicMock()
     session.commit = AsyncMock()
     fake_member = MemberCreate(
         name="Test",
@@ -48,4 +49,7 @@ async def test_login_user_service(mock_get_user,mock_verify_password,mock_create
         member=login_data,
         session=session
     )
-    assert token == 500
+    assert token == {
+        "access_token": 500,
+        "token_type": "bearer"
+    }

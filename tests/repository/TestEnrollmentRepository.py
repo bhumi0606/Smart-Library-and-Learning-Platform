@@ -15,6 +15,7 @@ async def test_create_enrollment():
     result_mock.scalar_one_or_none.return_value = fake_enrollment
 
     session.execute = AsyncMock(return_value=result_mock)
+    session.add = MagicMock()
     session.commit = AsyncMock()
 
     result = await create_enrollment(

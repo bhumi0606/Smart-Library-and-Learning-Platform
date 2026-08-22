@@ -20,6 +20,7 @@ async def test_create_book():
     result_mock.scalar_one_or_none.return_value = fake_book
 
     session.execute = AsyncMock(return_value=result_mock)
+    session.add = MagicMock()
     session.commit = AsyncMock()
 
     result = await create_book(

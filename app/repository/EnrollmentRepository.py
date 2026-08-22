@@ -18,6 +18,7 @@ async def create_enrollment(
 
     session.add(enrollment)
     await session.commit()
+    await session.refresh(enrollment)
     return enrollment
 
 async def get_enrollment_by_id(
@@ -58,6 +59,7 @@ async def update_enrollment(
             enrollment.course_id = update_enrollment.course_id
 
     await session.commit()
+    await session.refresh(enrollment)
     return enrollment
 
 async def delete_enrollment(
@@ -75,3 +77,17 @@ async def delete_enrollment(
     await session.delete(enrollment)
     await session.commit()
     return enrollment
+
+async def get_enrollment_by_member_and_course(
+    member_id: int,
+    course_id: int,
+    session: AsyncSession,
+):
+    result = await session.execute(
+        select(Enrollment).where(
+            Enrollment.member_id == member_id,
+            Enrollment.course_id == course_id,
+        )
+    )
+
+    return result.scalar_one_or_none()

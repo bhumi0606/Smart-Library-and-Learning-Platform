@@ -14,7 +14,7 @@ class Course(Base):
         index=True,
     )
 
-    title: Mapped[str] = mapped_column(
+    name: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
         index=True,

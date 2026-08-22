@@ -3,13 +3,13 @@ from sqlalchemy.orm import declarative_base
 from app.core.config import DATABASE_URL
  
 engine = create_async_engine(DATABASE_URL)
-Session = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Session = async_sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False,)
 Base = declarative_base()
  
  
-def get_db():
+async def get_db():
     db = Session()
     try:
         yield db
     finally:
-        db.close()
+        await db.close()

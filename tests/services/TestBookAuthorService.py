@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -6,16 +6,30 @@ from app.schemas.bookAuthor.BookAuthorCreate import CreateBookAuthor
 from app.services.BookAuthorService import create_book_author_service, get_book_author_by_id_service, get_book_authors_service, delete_book_author_service
 
 @pytest.mark.asyncio
+@patch("app.services.BookAuthorService.get_book_by_id")
+@patch("app.services.BookAuthorService.get_author_by_id")
 @patch("app.services.BookAuthorService.create_book_author")
-async def test_create_book_author_service(mock_create_book_author):
+async def test_create_book_author_service(
+    mock_create_book_author,
+    mock_get_author_by_id,
+    mock_get_book_by_id,
+):
 
     session = MagicMock()
+
+    fake_book = MagicMock()
+    fake_book.id = 1
+
+    fake_author = MagicMock()
+    fake_author.id = 1
 
     fake_book_author = MagicMock()
     fake_book_author.id = 1
     fake_book_author.book_id = 1
     fake_book_author.author_id = 1
 
+    mock_get_book_by_id.return_value = fake_book
+    mock_get_author_by_id.return_value = fake_author
     mock_create_book_author.return_value = fake_book_author
 
     book_author = CreateBookAuthor(
@@ -29,7 +43,6 @@ async def test_create_book_author_service(mock_create_book_author):
     )
 
     assert result == fake_book_author
-
 
 @pytest.mark.asyncio
 @patch("app.services.BookAuthorService.get_book_author_by_id")

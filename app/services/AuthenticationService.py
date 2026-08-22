@@ -38,4 +38,7 @@ async def login_member_service(member,session):
         role = member.role
     )
     token = create_access_token(data)
-    return token
+    return {
+        "access_token": token,
+        "token_type": "bearer"
+    }

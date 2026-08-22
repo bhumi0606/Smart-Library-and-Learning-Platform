@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.schemas.book.BookUpdate import UpdateBook
+from app.enums.BookEnums import BookStatus, BookType
 
 
 async def create_book(
@@ -14,12 +15,13 @@ async def create_book(
         title = book.title,
         published_date = book.published_date,
         isbn = book.isbn,
-        book_type = book.book_type,
-        status = book.status
+        book_type = BookType(book.book_type),
+        status = BookStatus(book.status)
     )
 
     session.add(book)
     await session.commit()
+    await session.refresh(book)
     return book
 
 async def get_books(
@@ -64,6 +66,7 @@ async def update_book(
             book.status = update_book.status
 
     await session.commit()
+    await session.refresh(book)
     return book
 
 async def delete_book(

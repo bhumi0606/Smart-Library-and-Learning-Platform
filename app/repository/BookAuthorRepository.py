@@ -15,6 +15,7 @@ async def create_book_author(
 
     session.add(book_author)
     await session.commit()
+    await session.refresh(book_author)
     return book_author
 
 async def get_book_author_by_id(

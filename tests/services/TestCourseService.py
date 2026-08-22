@@ -12,7 +12,7 @@ async def test_create_course_service(mock_create_course):
     session = MagicMock()
 
     course = CreateCourse(
-        title="Python Course"
+        name="Python Course"
     )
 
     fake_course = MagicMock()
