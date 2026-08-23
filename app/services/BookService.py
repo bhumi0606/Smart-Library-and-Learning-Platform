@@ -1,5 +1,8 @@
+import math
+
 from fastapi import HTTPException, status
 
+from app.enums.BookEnums import BookStatus
 from app.repository.BookRepository import create_book, delete_book, get_book_by_id, get_books, update_book
 from app.schemas.book.BookCreate import CreateBook
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,18 +25,44 @@ async def create_book_service(
     return response
 
 async def get_books_service(
-        session: AsyncSession
+    session: AsyncSession,
+    title: str | None = None,
+    author: str | None = None,
+    book_status: BookStatus | None = None,
+    page: int = 1,
+    limit: int = 10,        
 ):
-    response = await get_books(
-        session = session
-    )
-    if not response:
+
+    if page < 1:
         raise HTTPException(
-            status_code= status.HTTP_404_NOT_FOUND,
-            detail = "Books not found"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Page must be greater than 0",
         )
 
-    return response
+    if limit < 1 or limit > 100:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Limit must be between 1 and 100",
+        )
+
+    books, total = await get_books(
+        session=session,
+        title=title,
+        author=author,
+        status=book_status,
+        page=page,
+        limit=limit,
+    )
+
+    pages = math.ceil(total / limit) if total else 0
+
+    return {
+        "books": books,
+        "page": page,
+        "limit": limit,
+        "total": total,
+        "pages": pages,
+    }
 
 async def get_book_by_id_service(
         id: int,

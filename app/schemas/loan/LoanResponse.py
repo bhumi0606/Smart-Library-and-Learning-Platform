@@ -21,5 +21,8 @@ class LoanResponse(BaseModel):
     return_date: Optional[datetime] = Field(
         description="Timestamp when the loan was returned"
     )
+    receipt_url: str = Field(
+        description="URL of the loan receipt stored in S3"
+    )
     
     model_config = ConfigDict(from_attributes=True)

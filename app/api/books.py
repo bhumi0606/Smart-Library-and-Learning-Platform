@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
 from app.dependencies.authentication import get_current_user, require_librarian
-from app.schemas.book.BookResponse import BookResponse
+from app.enums.BookEnums import BookStatus
+from app.schemas.book.BookResponse import BookListResponse, BookResponse
 from app.schemas.book.BookCreate import CreateBook
 from app.schemas.book.BookUpdate import UpdateBook
 from app.services.BookService import create_book_service, get_books_service, get_book_by_id_service, update_book_service, delete_book_service
@@ -35,13 +36,24 @@ async def create_book(
 @book_router.get(
     "",
     status_code=status.HTTP_200_OK,
-    response_model=List[BookResponse]
+    response_model=BookListResponse
 )
-async def get_books(
-    session: AsyncSession = Depends(get_db)
+async def get_books_api(
+    title: str | None = None,
+    author: str | None = None,
+    book_status: BookStatus | None = None,
+    page: int = 1,
+    limit: int = 10,
+    session: AsyncSession = Depends(get_db),
 ):
+
     return await get_books_service(
         session=session,
+        title=title,
+        author=author,
+        book_status=book_status,
+        page=page,
+        limit=limit,
     )
 
 
