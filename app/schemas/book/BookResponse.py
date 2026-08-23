@@ -28,3 +28,10 @@ class BookResponse(BaseModel):
     )
 
     model_config = ConfigDict(from_attributes=True)
+
+class BookListResponse(BaseModel):
+    books: list[BookResponse]
+    page: int
+    limit: int
+    total: int
+    pages: int
