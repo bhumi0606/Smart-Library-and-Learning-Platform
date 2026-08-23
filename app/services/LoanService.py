@@ -5,16 +5,10 @@ from app.enums.BookEnums import BookStatus, BookType
 from app.enums.RoleEnums import Role
 
 from app.repository.BookRepository import get_book_by_id
-from app.repository.LoanRepository import (
-    create_loan,
-    delete_loan,
-    get_loan_by_id,
-    get_loans,
-    get_overdue_loans,
-    return_loan,
-    update_loan,
-)
+from app.repository.LoanRepository import create_loan, delete_loan, get_loan_by_id, get_loans, get_overdue_loans, return_loan, update_loan
 from app.repository.MemberRepository import get_member_by_id
+from app.services.DocumentService import generate_loan_receipt
+from app.services.NotificationService import send_loan_receipt_email
 
 
 async def create_loan_service(
@@ -22,23 +16,9 @@ async def create_loan_service(
     current_user,
     session: AsyncSession,
 ):
-    # Members can only create loans for themselves
     if current_user.role == Role.MEMBER:
         loan.member_id = current_user.id
 
-    # Check member exists
-    member = await get_member_by_id(
-        id=loan.member_id,
-        session=session,
-    )
-
-    if member is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Member not found",
-        )
-
-    # Check book exists
     book = await get_book_by_id(
         id=loan.book_id,
         session=session,
@@ -50,7 +30,6 @@ async def create_loan_service(
             detail="Book not found",
         )
 
-    # Physical books can only be borrowed when available
     if (
         book.book_type == BookType.PHYSICAL
         and book.status != BookStatus.AVAILABLE
@@ -60,27 +39,42 @@ async def create_loan_service(
             detail="Book is not available",
         )
 
-    # Create loan
     response = await create_loan(
         loan=loan,
         session=session,
     )
 
-    if response is None:
+    if not response:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Loan is not created",
         )
 
-    # Physical book becomes borrowed
     if book.book_type == BookType.PHYSICAL:
         book.status = BookStatus.BORROWED
 
         await session.commit()
         await session.refresh(book)
 
-    return response
-
+    receipt_url, receipt_bytes = generate_loan_receipt(
+        loan=response,
+    )
+    await send_loan_receipt_email(
+        email=response.member.email,
+        member_name=response.member.name,
+        book_title=response.book.title,
+        due_date=response.due_date,
+        receipt_bytes=receipt_bytes,
+    )
+    return {
+        "id": response.id,
+        "member_id": response.member_id,
+        "book_id": response.book_id,
+        "issued_at": response.issued_at,
+        "due_date": response.due_date,
+        "return_date": response.return_date,
+        "receipt_url": receipt_url,
+    }
 
 async def get_loans_service(
     current_user,

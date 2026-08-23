@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import Loan
 from app.schemas.loan.LoanCreate import CreateLoan
 from app.schemas.loan.LoanUpdate import UpdateLoan
+from sqlalchemy.orm import selectinload
 
 
 async def create_loan(
@@ -23,10 +24,19 @@ async def create_loan(
     session.add(new_loan)
 
     await session.commit()
-    await session.refresh(new_loan)
 
-    return new_loan
+    result = await session.execute(
+        select(Loan)
+        .options(
+            selectinload(Loan.member),
+            selectinload(Loan.book),
+        )
+        .where(
+            Loan.id == new_loan.id
+        )
+    )
 
+    return result.scalar_one()
 
 async def get_loan_by_id(
     id: int,
@@ -58,14 +68,19 @@ async def get_loans(
 
 
 async def get_overdue_loans(
-    session: AsyncSession,
-    member_id: int | None = None,
+    session,
+    member_id=None,
 ):
-    now = datetime.now(timezone.utc)
-
-    query = select(Loan).where(
-        Loan.due_date < now,
-        Loan.return_date.is_(None),
+    query = (
+        select(Loan)
+        .options(
+            selectinload(Loan.member),
+            selectinload(Loan.book),
+        )
+        .where(
+            Loan.due_date < datetime.now(timezone.utc),
+            Loan.return_date.is_(None),
+        )
     )
 
     if member_id is not None:
