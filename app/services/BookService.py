@@ -3,7 +3,7 @@ import math
 from fastapi import HTTPException, status
 
 from app.enums.BookEnums import BookStatus
-from app.repository.BookRepository import create_book, delete_book, get_book_by_id, get_books, update_book
+from app.repository.BookRepository import create_book, delete_book, get_book_by_id, get_books, update_book, check_book_availability
 from app.schemas.book.BookCreate import CreateBook
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -113,3 +113,20 @@ async def delete_book_service(
         )
         
     return response
+
+async def check_book_availability_service(
+    book_id: int,
+    session: AsyncSession,
+):
+    result = await check_book_availability(
+        book_id=book_id,
+        session=session,
+    )
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Book not found with id: {book_id}",
+        )
+
+    return result

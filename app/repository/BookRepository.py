@@ -153,3 +153,26 @@ async def delete_book(
     await session.commit()
 
     return book
+
+async def check_book_availability(
+    book_id: int,
+    session: AsyncSession,
+):
+    book = await get_book_by_id(
+        id=book_id,
+        session=session,
+    )
+
+    if book is None:
+        return None
+
+    return {
+        "book_id": book.id,
+        "title": book.title,
+        "available": book.status == BookStatus.AVAILABLE,
+        "status": (
+            book.status.value
+            if hasattr(book.status, "value")
+            else str(book.status)
+        ),
+    }

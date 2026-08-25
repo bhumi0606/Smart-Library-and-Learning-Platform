@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
@@ -6,6 +6,7 @@ from app.dependencies.authentication import get_current_user, require_librarian
 from app.schemas.course.CourseCreate import CreateCourse
 from app.schemas.course.CourseUpdate import UpdateCourse
 from app.services.CourseService import create_course_service, get_course_by_id_service, get_courses_service, update_course_service, delete_course_service
+from app.core.rate_limiter import limiter
 
 course_router = APIRouter(
     dependencies=[Depends(get_current_user)],
@@ -19,7 +20,9 @@ course_router = APIRouter(
     dependencies=[Depends(require_librarian)],
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("20/minute")
 async def create_course(
+    request: Request,
     course: CreateCourse,
     session: AsyncSession = Depends(get_db),
 ):
@@ -33,7 +36,9 @@ async def create_course(
     "",
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("20/minute")
 async def get_courses(
+    request: Request,
     session: AsyncSession = Depends(get_db),
 ):
     return await get_courses_service(
@@ -45,7 +50,9 @@ async def get_courses(
     "/{course_id}",
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("20/minute")
 async def get_course(
+    request: Request,
     course_id: int,
     session: AsyncSession = Depends(get_db),
 ):
@@ -60,7 +67,9 @@ async def get_course(
     dependencies=[Depends(require_librarian)],
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("20/minute")
 async def update_course(
+    request: Request,
     course_id: int,
     course_update: UpdateCourse,
     session: AsyncSession = Depends(get_db),
@@ -77,7 +86,9 @@ async def update_course(
     dependencies=[Depends(require_librarian)],
     status_code=status.HTTP_204_NO_CONTENT,
 )
+@limiter.limit("20/minute")
 async def delete_course(
+    request: Request,
     course_id: int,
     session: AsyncSession = Depends(get_db),
 ):

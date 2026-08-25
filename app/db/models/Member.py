@@ -62,3 +62,7 @@ class Member(Base):
         "Enrollment",
         back_populates="member",
     )
+    reservations: Mapped[list["Reservation"]] = relationship(
+        "Reservation",
+        back_populates="member",
+    )

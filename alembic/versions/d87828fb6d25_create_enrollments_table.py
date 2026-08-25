@@ -22,7 +22,7 @@ def upgrade() -> None:
     """Upgrade schema."""
     op.create_table(
         "enrollments",
-        sa.Column("id", sa.Integer(), Primary_key=True, index=True),
+        sa.Column("id", sa.Integer(), primary_key=True, index=True),
         sa.Column("member_id", sa.Integer(),sa.ForeignKey("members.id"), nullable=False),
         sa.Column("course_id", sa.Integer(), sa.ForeignKey("courses.id"), nullable=False),
         sa.Column("enrolled_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),

@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -5,8 +7,7 @@ from app.enums.BookEnums import BookStatus, BookType
 from app.enums.RoleEnums import Role
 
 from app.repository.BookRepository import get_book_by_id
-from app.repository.LoanRepository import create_loan, delete_loan, get_loan_by_id, get_loans, get_overdue_loans, return_loan, update_loan
-from app.repository.MemberRepository import get_member_by_id
+from app.repository.LoanRepository import create_loan, delete_loan, get_loan_by_id, get_loans, get_overdue_loans, renew_loan, return_loan, update_loan
 from app.services.DocumentService import generate_loan_receipt
 from app.services.NotificationService import send_loan_receipt_email
 
@@ -242,3 +243,48 @@ async def delete_loan_service(
         )
 
     return response
+
+async def renew_loan_service(
+    id: int,
+    current_user,
+    session: AsyncSession,
+):
+    loan = await get_loan_by_id(
+        id=id,
+        session=session,
+    )
+
+    if loan is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Loan not found with id: {id}",
+        )
+
+    if (
+        current_user.role != Role.LIBRARIAN
+        and loan.member_id != current_user.id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only renew your own loan.",
+        )
+
+    if loan.return_date is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This loan has already been returned.",
+        )
+
+    result = await renew_loan(
+        id=id,
+        session=session,
+        days=14,
+    )
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Loan could not be renewed.",
+        )
+
+    return result
