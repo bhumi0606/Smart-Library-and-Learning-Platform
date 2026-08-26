@@ -15,7 +15,7 @@ def upload_document(
     file_bytes: bytes,
     file_name: str,
     content_type: str,
-) -> str:
+):
 
     s3_client.put_object(
         Bucket=settings.AWS_S3_BUCKET,

@@ -76,3 +76,8 @@ class Book(Base):
         secondary="book_authors",
         back_populates="books",
     )
+
+    reservations: Mapped[list["Reservation"]] = relationship(
+        "Reservation",
+        back_populates="book",
+    )

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
 from app.dependencies.authentication import get_current_user, require_librarian
 from app.schemas.bookAuthor.BookAuthorCreate import CreateBookAuthor
 from app.services.BookAuthorService import create_book_author_service, get_book_author_by_id_service, get_book_authors_service, delete_book_author_service
+from app.core.rate_limiter import limiter
 
 book_author_router = APIRouter(
     dependencies=[Depends(get_current_user)],
@@ -18,7 +19,9 @@ book_author_router = APIRouter(
     dependencies=[Depends(require_librarian)],
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("20/minute")
 async def create_book_author(
+    request: Request,
     book_author: CreateBookAuthor,
     session: AsyncSession = Depends(get_db),
 ):
@@ -32,7 +35,9 @@ async def create_book_author(
     "",
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("20/minute")
 async def get_book_authors(
+    request: Request,
     session: AsyncSession = Depends(get_db),
 ):
     return await get_book_authors_service(
@@ -44,7 +49,9 @@ async def get_book_authors(
     "/{book_author_id}",
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("20/minute")
 async def get_book_author(
+    request: Request,
     book_author_id: int,
     session: AsyncSession = Depends(get_db),
 ):
@@ -59,7 +66,9 @@ async def get_book_author(
     dependencies=[Depends(require_librarian)],
     status_code=status.HTTP_204_NO_CONTENT,
 )
+@limiter.limit("20/minute")
 async def delete_book_author(
+    request: Request,
     book_author_id: int,
     session: AsyncSession = Depends(get_db),
 ):

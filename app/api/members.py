@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
 from app.dependencies.authentication import get_current_user, require_librarian, require_member_access
 from app.schemas.member.MemberUpdate import MemberUpdate
 from app.services.MemberService import get_member_by_id_service, get_members_service, update_member_service, delete_member_service
+from app.core.rate_limiter import limiter
 
 member_router = APIRouter(
     dependencies=[Depends(get_current_user)],
@@ -12,26 +13,28 @@ member_router = APIRouter(
     tags=["Members"],
 )
 
-
 @member_router.get(
     "",
     dependencies=[Depends(require_librarian)],
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("20/minute")
 async def get_members(
+    request: Request,
     session: AsyncSession = Depends(get_db),
 ):
     return await get_members_service(
         session=session,
     )
 
-
 @member_router.get(
     "/{member_id}",
     dependencies=[Depends(require_member_access)],
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("20/minute")
 async def get_member(
+    request: Request,
     member_id: int,
     session: AsyncSession = Depends(get_db),
 ):
@@ -40,13 +43,14 @@ async def get_member(
         session=session,
     )
 
-
 @member_router.patch(
     "/{member_id}",
     dependencies=[Depends(require_member_access)],
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("20/minute")
 async def update_member(
+    request: Request,
     member_id: int,
     member_update: MemberUpdate,
     session: AsyncSession = Depends(get_db),
@@ -57,13 +61,14 @@ async def update_member(
         session=session,
     )
 
-
 @member_router.delete(
     "/{member_id}",
     dependencies=[Depends(require_librarian)],
     status_code=status.HTTP_204_NO_CONTENT,
 )
+@limiter.limit("20/minute")
 async def delete_member(
+    request: Request,
     member_id: int,
     session: AsyncSession = Depends(get_db),
 ):

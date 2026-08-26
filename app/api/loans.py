@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +10,7 @@ from app.schemas.loan.LoanCreate import CreateLoan
 from app.schemas.loan.LoanUpdate import UpdateLoan
 
 from app.services.LoanService import create_loan_service, get_loan_by_id_service, get_loans_service, update_loan_service, return_loan_service, get_overdue_loans_service
+from app.core.rate_limiter import limiter
 
 loan_router = APIRouter(
     dependencies=[Depends(get_current_user)],
@@ -17,12 +18,13 @@ loan_router = APIRouter(
     tags=["Loans"],
 )
 
-
 @loan_router.post(
     "",
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("20/minute")
 async def create_loan(
+    request: Request,
     loan: CreateLoan,
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -33,12 +35,13 @@ async def create_loan(
         session=session,
     )
 
-
 @loan_router.get(
     "",
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("20/minute")
 async def get_loans(
+    request: Request,
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -47,12 +50,13 @@ async def get_loans(
         session=session,
     )
 
-
 @loan_router.get(
     "/overdue",
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("20/minute")
 async def get_overdue_loans(
+    request: Request,
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -61,12 +65,13 @@ async def get_overdue_loans(
         session=session,
     )
 
-
 @loan_router.get(
     "/{loan_id}",
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("20/minute")
 async def get_loan(
+    request: Request,
     loan_id: int,
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -77,12 +82,13 @@ async def get_loan(
         session=session,
     )
 
-
 @loan_router.post(
     "/{loan_id}/return",
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("20/minute")
 async def return_loan(
+    request: Request,
     loan_id: int,
     session: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
@@ -93,13 +99,14 @@ async def return_loan(
         session=session,
     )
 
-
 @loan_router.patch(
     "/{loan_id}",
     dependencies=[Depends(require_librarian)],
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit("20/minute")
 async def update_loan(
+    request: Request,
     loan_id: int,
     loan_update: UpdateLoan,
     session: AsyncSession = Depends(get_db),

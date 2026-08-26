@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
@@ -10,6 +10,7 @@ from app.schemas.book.BookResponse import BookListResponse, BookResponse
 from app.schemas.book.BookCreate import CreateBook
 from app.schemas.book.BookUpdate import UpdateBook
 from app.services.BookService import create_book_service, get_books_service, get_book_by_id_service, update_book_service, delete_book_service
+from app.core.rate_limiter import limiter
 
 book_router = APIRouter(
     dependencies=[Depends(get_current_user)],
@@ -17,13 +18,14 @@ book_router = APIRouter(
     tags=["Books"],     
 )
 
-
+@limiter.limit("20/minute")
 @book_router.post(
     "",
     dependencies=[Depends(require_librarian)],
     status_code=status.HTTP_201_CREATED,
 )
 async def create_book(
+    request: Request,
     book: CreateBook,
     session: AsyncSession = Depends(get_db),
 ):
@@ -32,13 +34,14 @@ async def create_book(
         session=session,
     )
 
-
+@limiter.limit("20/minute")
 @book_router.get(
     "",
     status_code=status.HTTP_200_OK,
     response_model=BookListResponse
 )
 async def get_books_api(
+    request: Request,
     title: str | None = None,
     author: str | None = None,
     book_status: BookStatus | None = None,
@@ -56,13 +59,14 @@ async def get_books_api(
         limit=limit,
     )
 
-
+@limiter.limit("20/minute")
 @book_router.get(
     "/{book_id}",
     status_code=status.HTTP_200_OK,
     response_model= BookResponse
 )
 async def get_book(
+    request: Request,
     book_id: int,
     session: AsyncSession = Depends(get_db),
 ):
@@ -71,13 +75,14 @@ async def get_book(
         session=session,
     )
 
-
+@limiter.limit("20/minute")
 @book_router.patch(
     "/{book_id}",
     dependencies=[Depends(require_librarian)],
     status_code=status.HTTP_200_OK,
 )
 async def update_book(
+    request: Request,
     book_id: int,
     book_update: UpdateBook,
     session: AsyncSession = Depends(get_db),
@@ -94,7 +99,9 @@ async def update_book(
     dependencies=[Depends(require_librarian)],
     status_code=status.HTTP_204_NO_CONTENT,
 )
+@limiter.limit("20/minute")
 async def delete_book(
+    request: Request,
     book_id: int,
     session: AsyncSession = Depends(get_db),
 ):
