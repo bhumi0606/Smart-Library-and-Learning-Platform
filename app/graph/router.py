@@ -2,330 +2,492 @@ import json
 
 from app.core.config import settings
 from app.core.openai_client import client
-
 from app.graph.state import AssistantState
 
-INTENT_PROMPT = """
-You are the intent and task planner for a Smart Library assistant.
 
-Analyze the user's request and identify:
+# TASK DEFINITIONS
+TASK_DESCRIPTIONS = {
 
-1. Which library domains are involved.
-2. Which concrete tasks need to be performed.
-3. Whether the request requires multiple steps.
+    "answer_general":
+        "Answer greetings, thanks, casual conversation, "
+        "or general library-related questions.",
 
-Available domains:
+    "search_book_content":
+        "Search the actual uploaded/document content of books. "
+        "Use this when the user asks about chapters, explanations, "
+        "concepts, summaries, characters, or what a book says.",
 
-- book
-  Book information, book content, authors, ISBN, book discovery,
-  book recommendations, digital book questions, and book availability.
+    "search_books":
+        "Search the library catalog for books using title, author, "
+        "ISBN, availability/status, or a general catalog query.",
 
-- loan
-  Borrowing, returning, renewing, reserving books, overdue loans,
-  borrowing history, and loan-related operations.
+    "get_book":
+        "Get detailed information about a specific book.",
 
-- course
-  Course information, course discovery, course enrollment,
-  and course-related questions.
+    "recommend_book":
+        "Recommend books based on the user's interests, request, "
+        "or borrowing history.",
 
-- general
-  Greetings, thanks, casual conversation, help requests,
-  or anything unrelated to the library domains.
+    "get_member_history":
+        "Get the current member's borrowing history and active loans.",
 
-Available tasks:
+    "check_book_availability":
+        "Check whether a specific book is currently available.",
 
-- answer_general
-  Use for greetings, thanks, casual conversation, or general help.
+    "borrow_book":
+        "Borrow, check out, or issue a book to the current member.",
 
-- search_book_content
-  Use when the user asks about the actual CONTENT of a book or document.
+    "return_book":
+        "Return a book that the current member has borrowed.",
 
-  Examples:
-  - "What is this book about?"
-  - "Who are the main characters?"
-  - "What does the book say about testing?"
-  - "Explain chapter 5."
-  - "Who is Joseph Lind?"
-  - "What happened in the first chapter?"
-  - "What are the main concepts discussed in this book?"
+    "renew_loan":
+        "Renew or extend an existing active loan.",
 
-  IMPORTANT:
-  Questions about characters, chapters, concepts, explanations,
-  events, topics, summaries, or information contained inside the
-  uploaded document MUST use search_book_content.
+    "reserve_book":
+        "Reserve or hold a book for the current member.",
 
-- search_books
-  Use when the user wants to search/list books from the library catalog.
+    "search_courses":
+        "Search the course catalog.",
 
-  Examples:
-  - "Show me all Python books."
-  - "Which books are available?"
-  - "Find books by Robert Martin."
+    "get_course":
+        "Get details about a specific course.",
 
-- get_book
-  Use ONLY when the user explicitly asks for library metadata
-  about a specific book and the book ID is known.
-
-  Examples:
-  - "Get book with ID 3."
-  - "Show the details of book 3."
-
-  Do NOT use get_book for questions about the content of a book.
-
-- recommend_book
-  Use when the user asks for a book recommendation.
-
-- get_member_history
-  Use when the user asks about their borrowing/loan history.
-
-- check_book_availability
-  Use when the user asks whether a specific book can currently
-  be borrowed/accessed.
-
-- borrow_book
-  Use when the user explicitly wants to borrow a book.
-
-- return_book
-  Use when the user wants to return a borrowed book.
-
-- renew_loan
-  Use when the user wants to renew/extend a loan.
-
-- reserve_book
-  Use when the user wants to reserve a book.
-
-- search_courses
-  Use when the user asks to find/search/list courses.
-
-- get_course
-  Use when the user asks for details about a specific course.
-
-- enroll_course
-  Use when the user wants to enroll in a course.
-
-Rules:
-
-- Return only valid JSON.
-- "intents" must contain one or more domains.
-- "tasks" must contain the operations required to answer the request.
-- Preserve the logical order of tasks.
-- "is_multi_step" must be true if more than one operation is required.
-- A simple question such as "Hi" should be:
-  intents = ["general"]
-  tasks = ["answer_general"]
-  is_multi_step = false
-
-Examples:
-
-User:
-"Hi"
-
-Response:
-{
-    "intents": ["general"],
-    "tasks": ["answer_general"],
-    "is_multi_step": false
+    "enroll_course":
+        "Enroll the current member in a course.",
 }
-
-
-User:
-"Which books cover machine learning basics?"
-
-Response:
-{
-    "intents": ["book"],
-    "tasks": ["search_book_content"],
-    "is_multi_step": false
-}
-
-
-User:
-"Is Clean Code available?"
-
-Response:
-{
-    "intents": ["book"],
-    "tasks": ["check_book_availability"],
-    "is_multi_step": false
-}
-
-
-User:
-"What books have I borrowed?"
-
-Response:
-{
-    "intents": ["loan"],
-    "tasks": ["get_member_history"],
-    "is_multi_step": false
-}
-
-User:
-"Recommend me a book."
-
-Response:
-{
-    "intents": ["book", "loan"],
-    "tasks": [
-        "get_member_history",
-        "search_books",
-        "recommend_book"
-    ],
-    "is_multi_step": true
-}
-
-
-User:
-"Recommend a book based on my borrowing history and reserve it
-if it is available."
-
-Response:
-{
-    "intents": ["loan", "book"],
-    "tasks": [
-        "get_member_history",
-        "recommend_book",
-        "check_book_availability",
-        "reserve_book"
-    ],
-    "is_multi_step": true
-}
-
-
-User:
-"Tell me what Clean Code says about testing and whether it is available."
-
-Response:
-{
-    "intents": ["book"],
-    "tasks": [
-        "search_book_content",
-        "check_book_availability"
-    ],
-    "is_multi_step": true
-}
-
-
-User:
-"What courses are available and enroll me in Python if possible?"
-
-Response:
-{
-    "intents": ["course"],
-    "tasks": [
-        "search_courses",
-        "enroll_course"
-    ],
-    "is_multi_step": true
-}
-
-
-User:
-"Thanks!"
-
-Response:
-{
-    "intents": ["general"],
-    "tasks": ["answer_general"],
-    "is_multi_step": false
-}
-
-
-User request:
-"""
 
 
 ALLOWED_INTENTS = {
     "book",
     "loan",
     "course",
+    "reservation",
     "general",
 }
 
 
-ALLOWED_TASKS = {
-    "answer_general",
-    "search_book_content",
-    "search_books",
-    "get_book",
-    "recommend_book",
-    "get_member_history",
-    "check_book_availability",
-    "borrow_book",
-    "return_book",
-    "renew_loan",
-    "reserve_book",
-    "search_courses",
-    "get_course",
-    "enroll_course",
-}
+ALLOWED_TASKS = set(
+    TASK_DESCRIPTIONS.keys()
+)
 
+# BUILD TASK DESCRIPTION
+def _build_task_descriptions() -> str:
 
-def detect_intent(
-    question: str,
-):
-    if not question or not question.strip():
-        return {
-            "intents": ["general"],
-            "tasks": ["answer_general"],
-            "is_multi_step": False,
-        }
-
-    normalized_question = question.lower().strip()
-
-    recommendation_keywords = [
-        "recommend a book",
-        "recommend me a book",
-        "recommend books",
-        "book recommendation",
-        "recommendation",
-        "suggest a book",
-        "suggest me a book",
-        "which book should i read",
-        "what book should i read",
-        "what should i read",
-    ]
-
-    if any(
-        keyword in normalized_question
-        for keyword in recommendation_keywords
-    ):
-        return {
-            "intents": ["book"],
-            "tasks": ["recommend_book"],
-            "is_multi_step": False,
-        }
-
-    response = client.chat.completions.create(
-        model=settings.OPENAI_CHAT_MODEL,
-        messages=[
-            {
-                "role": "system",
-                "content": INTENT_PROMPT,
-            },
-            {
-                "role": "user",
-                "content": question,
-            },
-        ],
+    return "\n".join(
+        f"- {task}: {description}"
+        for task, description
+        in TASK_DESCRIPTIONS.items()
     )
 
-    content = (
-        response.choices[0]
-        .message
-        .content
-        .strip()
-    )
+# PLANNER PROMPT
+def _build_intent_prompt() -> str:
 
-    try:
-        result = json.loads(content)
+    tasks = _build_task_descriptions()
 
-    except json.JSONDecodeError:
-        return {
-            "intents": ["general"],
-            "tasks": ["answer_general"],
-            "is_multi_step": False,
-        }
+    return f"""
+You are the planning agent for a production Smart Library
+and Learning Platform.
+
+Your job is ONLY to understand the user's request and create
+a structured execution plan.
+
+You DO NOT execute database operations.
+
+You DO NOT answer the user.
+
+You ONLY decide:
+
+1. What intent the user has.
+2. Which tasks need to be executed.
+3. The correct order of those tasks.
+4. The arguments required by each task.
+
+============================================================
+AVAILABLE TASKS
+============================================================
+
+{tasks}
+
+
+============================================================
+IMPORTANT RULES
+============================================================
+
+1. Understand the COMPLETE meaning of the user's request.
+
+2. DO NOT use keyword matching.
+
+3. The user may express the same operation in many different ways.
+
+4. Never require exact words such as:
+   - borrow
+   - return
+   - renew
+   - reserve
+   - available
+
+5. Infer the operation semantically.
+
+6. Only select tasks from the available task list.
+
+7. Never invent a task.
+
+8. If multiple tasks are required, return them in the correct
+   execution order.
+
+9. Extract useful entities from the user's request.
+
+10. Do not invent database IDs.
+
+11. If the user gives a book title, put it into task arguments.
+
+12. If the user gives a book ID, put it into task arguments.
+
+13. If the user gives an author, put it into task arguments.
+
+14. If the user asks for available books, use:
+    status = "available"
+
+15. If the user asks for borrowed/unavailable books, use:
+    status = "borrowed"
+
+16. Database state must always be determined by application
+    code, not by the LLM.
+
+17. Do not silently convert unsupported operations into supported
+    operations.
+
+18. Return ONLY valid JSON.
+
+============================================================
+TASK ARGUMENTS
+============================================================
+
+For search_books, supported arguments are:
+
+{{
+    "title": string | null,
+    "author": string | null,
+    "status": "available" | "borrowed" | "lost" | "damaged" | null,
+    "query": string | null,
+    "page": integer,
+    "limit": integer
+}}
+
+For tasks such as:
+
+check_book_availability
+borrow_book
+return_book
+renew_loan
+reserve_book
+get_book
+
+you may provide:
+
+{{
+    "book_id": integer | null,
+    "book_title": string | null
+}}
+
+Do not invent book IDs.
+
+============================================================
+EXAMPLES
+============================================================
+
+
+USER:
+"Which books are available?"
+
+PLAN:
+{{
+    "intents": ["book"],
+    "tasks": ["search_books"],
+    "task_arguments": {{
+        "search_books": {{
+            "title": null,
+            "author": null,
+            "status": "available",
+            "query": null,
+            "page": 1,
+            "limit": 100
+        }}
+    }},
+    "is_multi_step": false
+}}
+
+
+USER:
+"What books can I borrow right now?"
+
+PLAN:
+{{
+    "intents": ["book", "loan"],
+    "tasks": ["search_books"],
+    "task_arguments": {{
+        "search_books": {{
+            "title": null,
+            "author": null,
+            "status": "available",
+            "query": null,
+            "page": 1,
+            "limit": 100
+        }}
+    }},
+    "is_multi_step": false
+}}
+
+
+USER:
+"Do you have Clean Code?"
+
+PLAN:
+{{
+    "intents": ["book"],
+    "tasks": ["search_books"],
+    "task_arguments": {{
+        "search_books": {{
+            "title": "Clean Code",
+            "author": null,
+            "status": null,
+            "query": null,
+            "page": 1,
+            "limit": 100
+        }}
+    }},
+    "is_multi_step": false
+}}
+
+
+USER:
+"Can I borrow Clean Code?"
+
+PLAN:
+{{
+    "intents": ["book", "loan"],
+    "tasks": [
+        "search_books",
+        "check_book_availability",
+        "borrow_book"
+    ],
+    "task_arguments": {{
+        "search_books": {{
+            "title": "Clean Code",
+            "author": null,
+            "status": null,
+            "query": null,
+            "page": 1,
+            "limit": 100
+        }},
+        "check_book_availability": {{
+            "book_title": "Clean Code",
+            "book_id": null
+        }},
+        "borrow_book": {{
+            "book_title": "Clean Code",
+            "book_id": null
+        }}
+    }},
+    "is_multi_step": true
+}}
+
+
+USER:
+"I need to give Clean Code back."
+
+PLAN:
+{{
+    "intents": ["loan", "book"],
+    "tasks": [
+        "get_member_history",
+        "return_book"
+    ],
+    "task_arguments": {{
+        "get_member_history": {{}},
+        "return_book": {{
+            "book_title": "Clean Code",
+            "book_id": null
+        }}
+    }},
+    "is_multi_step": true
+}}
+
+
+USER:
+"Can I keep Clean Code for another two weeks?"
+
+PLAN:
+{{
+    "intents": ["loan"],
+    "tasks": [
+        "get_member_history",
+        "renew_loan"
+    ],
+    "task_arguments": {{
+        "get_member_history": {{}},
+        "renew_loan": {{
+            "book_title": "Clean Code",
+            "book_id": null
+        }}
+    }},
+    "is_multi_step": true
+}}
+
+
+USER:
+"Can you hold Clean Code for me?"
+
+PLAN:
+{{
+    "intents": ["book", "reservation"],
+    "tasks": [
+        "search_books",
+        "check_book_availability",
+        "reserve_book"
+    ],
+    "task_arguments": {{
+        "search_books": {{
+            "title": "Clean Code",
+            "author": null,
+            "status": null,
+            "query": null,
+            "page": 1,
+            "limit": 100
+        }},
+        "check_book_availability": {{
+            "book_title": "Clean Code",
+            "book_id": null
+        }},
+        "reserve_book": {{
+            "book_title": "Clean Code",
+            "book_id": null
+        }}
+    }},
+    "is_multi_step": true
+}}
+
+
+USER:
+"Recommend something based on what I have borrowed."
+
+PLAN:
+{{
+    "intents": ["book", "loan"],
+    "tasks": [
+        "get_member_history",
+        "search_books",
+        "recommend_book"
+    ],
+    "task_arguments": {{
+        "get_member_history": {{}},
+        "search_books": {{
+            "title": null,
+            "author": null,
+            "status": null,
+            "query": null,
+            "page": 1,
+            "limit": 100
+        }},
+        "recommend_book": {{}}
+    }},
+    "is_multi_step": true
+}}
+
+
+USER:
+"Find a Python course and sign me up."
+
+PLAN:
+{{
+    "intents": ["course"],
+    "tasks": [
+        "search_courses",
+        "enroll_course"
+    ],
+    "task_arguments": {{
+        "search_courses": {{
+            "query": "Python"
+        }},
+        "enroll_course": {{}}
+    }},
+    "is_multi_step": true
+}}
+
+
+USER:
+"Hi"
+
+PLAN:
+{{
+    "intents": ["general"],
+    "tasks": ["answer_general"],
+    "task_arguments": {{
+        "answer_general": {{}}
+    }},
+    "is_multi_step": false
+}}
+
+
+USER:
+"Which books cover machine learning basics?"
+
+PLAN:
+{{
+    "intents": ["book"],
+    "tasks": ["search_books"],
+    "task_arguments": {{
+        "search_books": {{
+            "title": null,
+            "author": null,
+            "status": null,
+            "query": "machine learning basics",
+            "page": 1,
+            "limit": 100
+        }}
+    }},
+    "is_multi_step": false
+}}
+
+
+============================================================
+FINAL REQUIREMENT
+============================================================
+
+Return ONLY JSON.
+
+Format:
+
+{{
+    "intents": ["book"],
+    "tasks": ["search_books"],
+    "task_arguments": {{
+        "search_books": {{
+            "query": "machine learning"
+        }}
+    }},
+    "is_multi_step": false
+}}
+"""
+
+# FALLBACK
+def _fallback_plan() -> dict:
+
+    return {
+        "intents": ["general"],
+        "tasks": ["answer_general"],
+        "task_arguments": {
+            "answer_general": {}
+        },
+        "is_multi_step": False,
+    }
+
+
+# VALIDATION
+def _validate_plan(result: dict) -> dict:
+
+    if not isinstance(result, dict):
+        return _fallback_plan()
 
     intents = result.get(
         "intents",
@@ -337,16 +499,32 @@ def detect_intent(
         [],
     )
 
+    task_arguments = result.get(
+        "task_arguments",
+        {},
+    )
+
+    if not isinstance(intents, list):
+        intents = []
+
+    if not isinstance(tasks, list):
+        tasks = []
+
+    if not isinstance(task_arguments, dict):
+        task_arguments = {}
+
     intents = [
         intent
         for intent in intents
-        if intent in ALLOWED_INTENTS
+        if isinstance(intent, str)
+        and intent in ALLOWED_INTENTS
     ]
 
     tasks = [
         task
         for task in tasks
-        if task in ALLOWED_TASKS
+        if isinstance(task, str)
+        and task in ALLOWED_TASKS
     ]
 
     if not intents:
@@ -355,108 +533,127 @@ def detect_intent(
     if not tasks:
         tasks = ["answer_general"]
 
+    clean_arguments = {}
+
+    for task in tasks:
+
+        arguments = task_arguments.get(
+            task,
+            {},
+        )
+
+        if not isinstance(arguments, dict):
+            arguments = {}
+
+        clean_arguments[task] = arguments
+
     return {
         "intents": intents,
         "tasks": tasks,
+        "task_arguments": clean_arguments,
         "is_multi_step": len(tasks) > 1,
     }
 
+
+# DETECT PLAN
+def detect_intent(
+    question: str,
+):
+
+    response = client.chat.completions.create(
+        model=settings.OPENAI_CHAT_MODEL,
+        messages=[
+            {
+                "role": "system",
+                "content": _build_intent_prompt(),
+            },
+            {
+                "role": "user",
+                "content": question,
+            },
+        ],
+    )
+
+    content = (
+        response
+        .choices[0]
+        .message
+        .content
+        .strip()
+    )
+
+    # Remove markdown JSON fences
+    if content.startswith("```"):
+
+        content = content.replace(
+            "```json",
+            "",
+        )
+
+        content = content.replace(
+            "```",
+            "",
+        )
+
+        content = content.strip()
+
+    # Parse JSON
+    try:
+
+        result = json.loads(
+            content
+        )
+
+    except json.JSONDecodeError:
+
+        return _fallback_plan()
+
+    return _validate_plan(
+        result
+    )
+
+# LANGGRAPH ROUTER NODE
 def router_node(
     state: AssistantState,
 ):
-    question = state.get("question", "").strip().lower()
 
-    if any( 
-        phrase in question 
-        for phrase in [
-            "return my book", 
-            "return the book", 
-            "i want to return", 
-            "return a book", 
-            "give back my book", 
-            "give back the book", 
-        ] 
-    ): 
-        return { 
-            **state, 
-            "intents": ["loan", "book"], 
-            "tasks": [ "get_member_history", "return_book", ], 
-            "is_multi_step": True,
-        }
+    question = state.get(
+        "question",
+        "",
+    ).strip()
 
-    if any(
-        phrase in question
-        for phrase in [
-            "renew my book",
-            "renew the book",
-            "renew a book",
-            "renew book",
-            "renew my loan",
-            "renew the loan",
-            "extend my loan",
-            "extend the loan",
-        ]
-    ):
+    if not question:
+
         return {
             **state,
-            "intents": ["loan"],
-            "tasks": [
-                "get_member_history",
-                "renew_loan",
-            ],
-            "is_multi_step": True,
-        }
-    
-    if any(
-        phrase in question
-        for phrase in [
-            "return my book",
-            "return the book",
-            "i want to return",
-            "return a book",
-            "give back my book",
-            "give back the book",
-        ]
-    ):
-        return {
-            **state,
-            "intents": ["loan", "book"],
-            "tasks": [
-                "get_member_history",
-                "return_book",
-            ],
-            "is_multi_step": True,
+            "intents": ["general"],
+            "tasks": ["answer_general"],
+            "task_arguments": {
+                "answer_general": {}
+            },
+            "is_multi_step": False,
         }
 
-    if any(
-        phrase in question
-        for phrase in [
-            "recommend me a book",
-            "recommend a book",
-            "book recommendation",
-            "recommend book",
-            "suggest a book",
-            "suggest me a book",
-        ]
-    ):
-        return {
-            **state,
-            "intents": ["book", "loan"],
-            "tasks": [
-                "get_member_history",
-                "search_books",
-                "recommend_book",
-            ],
-            "is_multi_step": True,
-        }
-
-    result = detect_intent(
+    plan = detect_intent(
         question=question,
     )
 
     return {
         **state,
-        "intents": result["intents"],
-        "tasks": result["tasks"],
-        "is_multi_step": result["is_multi_step"],
+
+        "intents": plan[
+            "intents"
+        ],
+
+        "tasks": plan[
+            "tasks"
+        ],
+
+        "task_arguments": plan[
+            "task_arguments"
+        ],
+
+        "is_multi_step": plan[
+            "is_multi_step"
+        ],
     }

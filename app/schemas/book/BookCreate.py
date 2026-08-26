@@ -19,10 +19,10 @@ class CreateBook(BaseModel):
         description="ISBN of the book"
     )
     book_type: BookType = Field(
-        default=BookType.PHYSICAL,
+        default=BookType.PHYSICAL.value,
         description="Type of the book"
     )
     status: Optional[BookStatus] = Field(
-        default=BookStatus.AVAILABLE,
+        default=BookStatus.AVAILABLE.value,
         description="Status of the book"
     )

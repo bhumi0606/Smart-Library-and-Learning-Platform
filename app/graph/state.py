@@ -5,42 +5,50 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 class AssistantState(TypedDict, total=False):
 
-    # user request
+    # User request
     question: str
     session_id: str
     member_id: int | None
 
-    # session and current user
+    # Current user / DB session
     session: AsyncSession
     current_user: Any
 
-    # conversation
+    # Conversation
     messages: list[dict[str, Any]]
 
-    # intent
+    # LLM planning
     intents: list[str]
     tasks: list[str]
     is_multi_step: bool
+    task_arguments: dict[str, dict[str, Any]]
 
-    # rag
+    # RAG / book content
     retrieved_chunks: list[dict[str, Any]]
     citations: list[dict[str, Any]]
-    
 
-    # Book / recommendation
+    # Book
     book_id: int | None
     book_candidates: list[dict[str, Any]]
     book_total: int
+
+    # Member history
     member_history: list[Any]
+
+    # Recommendation
     recommendation_context: list[Any]
     recommended_book: dict[str, Any] | None
     recommendation_reason: str
+
+    # Availability
     book_available: bool | None
     availability_message: str
 
-    # loan
+    # Loan
     loan_result: dict[str, Any] | None
-    # reservation
+
+    # Reservation
     reservation: dict[str, Any] | None
-    # final response
+
+    # Final response
     answer: str
